@@ -75,7 +75,7 @@ resource "aws_security_group" "ec2" {
   }
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-ec2-sg"
-    Type = "EC@"
+    Type = "EC2"
   })
   lifecycle {
     create_before_destroy = true
