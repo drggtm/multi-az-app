@@ -30,4 +30,50 @@ resource "aws_launch_template" "main" {
     app_version = var.app_version
   }))
 
+  metadata_options {
+  http_tokens                 = "required"
+  http_endpoint= "enabled"
+  http_put_response_hop_limit = 1
 }
+
+ebs_optimized = true
+
+block_device_mappings {
+  device_name = "/dev/xvda"
+  ebs{
+    volume_size = 20
+    volume_type = "gp3"
+    delete_on_termination = true
+    encrypted = true
+  }
+}
+
+monitoring {
+  enabled = true
+}
+network_interfaces {
+  associate_public_ip_address = false
+}
+tag_specifications {
+  resource_type = "instance"
+  tags = merge(var.common_tags,{
+    Name = "${var.project_name}-${var.environment}-instance"
+  })
+}
+
+tag_specifications {
+  resource_type = "volume"
+  tags = merge(var.common_tags,{
+    Name="${var.project_name}-${var.environment}-volume"
+  })
+}
+
+tags = merge(var.common_tags,{
+  Name="${var.project_name}-${var.environment}-lunch-template"
+})
+lifecycle {
+  create_before_destroy = true
+}
+}
+
+

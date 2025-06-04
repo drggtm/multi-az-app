@@ -29,3 +29,8 @@ variable "app_version" {
   type        = string
   default     = "1.0.0"
 }
+
+variable "common_tags" {
+  description = "Tags that can be applied to all resource"
+  type= map(string)
+}
