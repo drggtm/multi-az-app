@@ -151,5 +151,76 @@ instance_refresh {
       min_healthy_percentage = 50
     }
 }
+dynamic "tag" {
+    for_each = var.common_tags
+    content {
+      key                 = tag.key
+      propagate_at_launch = true
+      value               = tag.value
+}
+}
+  tag {
+    key                 = "Name"
+    value               = "${var.project_name}-${var.environment}-asg-instance"
+    propagate_at_launch = true
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
+resource "aws_autoscaling_policy" "upscale" {
+  name                   = "${var.project_name}-${var.environment}-upscale"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.main.name
+}
+
+resource "aws_autoscaling_policy" "downscale" {
+  name                   = "${var.project_name}-${var.environment}-downscale"
+  scaling_adjustment     = -1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.main.name
+}
+
+resource "aws_cloudwatch_metric_alarm" "high-cpu" {
+  alarm_name          =  "${var.project_name}-${var.environment}-high-cpu"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 80
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.main.name
+  }
+
+  alarm_description = "This metric monitors ec2 cpu utilization"
+  alarm_actions     = [aws_autoscaling_policy.upscale.arn]
+  
+  tags = var.common_tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "low-cpu" {
+  alarm_name          =  "${var.project_name}-${var.environment}-low-cpu"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 20
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.main.name
+  }
+
+  alarm_description = "This metric monitors ec2 cpu utilization"
+  alarm_actions     = [aws_autoscaling_policy.downscale.arn]
+  
+  tags = var.common_tags
+}
