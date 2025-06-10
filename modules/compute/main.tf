@@ -31,49 +31,125 @@ resource "aws_launch_template" "main" {
   }))
 
   metadata_options {
-  http_tokens                 = "required"
-  http_endpoint= "enabled"
-  http_put_response_hop_limit = 1
-}
+    http_tokens                 = "required"
+    http_endpoint               = "enabled"
+    http_put_response_hop_limit = 1
+  }
 
-ebs_optimized = true
+  ebs_optimized = true
 
-block_device_mappings {
-  device_name = "/dev/xvda"
-  ebs{
-    volume_size = 20
-    volume_type = "gp3"
-    delete_on_termination = true
-    encrypted = true
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size           = 20
+      volume_type           = "gp3"
+      delete_on_termination = true
+      encrypted             = true
+    }
+  }
+
+  monitoring {
+    enabled = true
+  }
+  network_interfaces {
+    associate_public_ip_address = false
+  }
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(var.common_tags, {
+      Name = "${var.project_name}-${var.environment}-instance"
+    })
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+    tags = merge(var.common_tags, {
+      Name = "${var.project_name}-${var.environment}-volume"
+    })
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-lunch-template"
+  })
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
-monitoring {
-  enabled = true
+resource "aws_lb_target_group" "main" {
+  name_prefix = "${substr(var.project_name, 0, 6)}-"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "instance"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    path                = "/health"
+    matcher             = "200"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+  }
+  deregistration_delay = 30
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-target-group"
+  })
+  lifecycle {
+    create_before_destroy = true
+  }
 }
-network_interfaces {
-  associate_public_ip_address = false
-}
-tag_specifications {
-  resource_type = "instance"
-  tags = merge(var.common_tags,{
-    Name = "${var.project_name}-${var.environment}-instance"
+
+resource "aws_lb" "main" {
+  name                       = "${var.project_name}-${var.environment}-alb"
+  internal                   = false
+  load_balancer_type         = "application"
+  security_groups            = [aws_security_group_id]
+  subnets                    = var.pubic_subnet_ids
+  enable_deletion_protection = false
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-alb"
   })
 }
 
-tag_specifications {
-  resource_type = "volume"
-  tags = merge(var.common_tags,{
-    Name="${var.project_name}-${var.environment}-volume"
+resource "aws_lb_listener" "front_end" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.main.arn
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-albllistener"
   })
 }
 
-tags = merge(var.common_tags,{
-  Name="${var.project_name}-${var.environment}-lunch-template"
-})
-lifecycle {
-  create_before_destroy = true
-}
-}
+resource "aws_autoscaling_group" "main" {
+  name                = "${var.project_name}-${var.environment}-asg"
+  vpc_zone_identifier = var.private_subnet_ids
+  target_group_arns = [aws_lb_target_group.main.arn]
+  health_check_type = "ELB"
+  health_check_grace_period = 300
+  min_size = var.min_size
+  max_size = var.max_size
+  desired_capacity = var.desired_capacity
 
+    launch_template {
+    id      = aws_launch_template.main.id
+    version = "$Latest"
+}
+instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
+}
+}
 

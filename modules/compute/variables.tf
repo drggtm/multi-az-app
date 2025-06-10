@@ -34,3 +34,33 @@ variable "common_tags" {
   description = "Tags that can be applied to all resource"
   type= map(string)
 }
+
+variable "vpc_id" {
+  description = "Id of the VPC"
+  type = string
+}
+
+variable "pubic_subnet_ids" {
+  description = "PUblic subnet ID"
+  type = list(string)
+}
+
+variable "min_size" {
+  description = "minimum number of instance in asg"
+  type = number
+}
+
+variable "max_size" {
+  description = "max number of instances in asg"
+  type = number
+}
+
+variable "desired_capacity" {
+  description = "Desired number of instance"
+  type = number
+}
+
+variable "private_subnet_ids" {
+  description = "Ids of private subnets for ec2"
+  type = list(string)
+}
