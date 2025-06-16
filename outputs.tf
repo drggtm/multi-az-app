@@ -9,7 +9,7 @@ output "vpc_cidr_block" {
   value       = module.networking.vpc_cidr_block
 }
 
-output "pubic_subnet_ids" {
+output "public_subnet_ids" {
   description = "IDs of public subnets"
   value       = module.networking.pulic_subnets_ids
 }
@@ -34,9 +34,9 @@ output "ec2_security_group_id" {
   value       = module.security.ec2_security_group_id
 }
 
-output "lunch_template_id" {
-  description = "ID of lunch template"
-  value       = module.compute.lunch_template_id
+output "launch_template_id" {
+  description = "ID of launch template"
+  value       = module.compute.launch_template_id
 }
 
 output "autoscaling_group_name" {

@@ -1,5 +1,5 @@
 resource "aws_security_group" "alb" {
-  name        = "${var.project_name}-{var.environment}-alb"
+  name        = "${var.project_name}-${var.environment}-alb"
   description = "Security group of alb"
   vpc_id      = var.vpc_id
   ingress {
@@ -43,7 +43,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ec2" {
   description = "security group for ec2"
-  name        = "${var.project_name}-{var.environment}-ec2"
+  name        = "${var.project_name}-${var.environment}-ec2"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -66,8 +66,8 @@ resource "aws_security_group" "ec2" {
       cidr_blocks = var.ssh_cidr_blocks
     }
   }
-  egress = {
-    description = "for outbound traffice"
+  egress  {
+    description = "for outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"

@@ -56,7 +56,7 @@ variable "instance_type" {
 variable "key_pair_name" {
   description = "key pair for ec2 instance creation"
   type        = string
-  default     = {}
+  default     = ""
 }
 
 variable "app_version" {

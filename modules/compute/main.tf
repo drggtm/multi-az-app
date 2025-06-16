@@ -18,7 +18,7 @@ data "aws_region" "current" {}
 
 resource "aws_launch_template" "main" {
   name_prefix   = "${var.project_name}-${var.environment}"
-  description   = "lunch template for ${var.project_name} application"
+  description   = "launch template for ${var.project_name} application"
   image_id      = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
 
@@ -69,7 +69,7 @@ resource "aws_launch_template" "main" {
   }
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-lunch-template"
+    Name = "${var.project_name}-${var.environment}-launch-template"
   })
   lifecycle {
     create_before_destroy = true
@@ -108,8 +108,8 @@ resource "aws_lb" "main" {
   name                       = "${var.project_name}-${var.environment}-alb"
   internal                   = false
   load_balancer_type         = "application"
-  security_groups            = [aws_security_group_id]
-  subnets                    = var.pubic_subnet_ids
+  security_groups            = [var.alb_security_group_id]
+  subnets                    = var.public_subnet_ids
   enable_deletion_protection = false
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-alb"
@@ -207,7 +207,7 @@ resource "aws_cloudwatch_metric_alarm" "high-cpu" {
 
 resource "aws_cloudwatch_metric_alarm" "low-cpu" {
   alarm_name          =  "${var.project_name}-${var.environment}-low-cpu"
-  comparison_operator = "GreaterThanOrEqualToThreshold"
+  comparison_operator = "LessThanThreshold"
   evaluation_periods  = 2
   metric_name         = "CPUUtilization"
   namespace           = "AWS/EC2"

@@ -40,7 +40,7 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "pubic_subnet_ids" {
+variable "public_subnet_ids" {
   description = "PUblic subnet ID"
   type        = list(string)
 }
@@ -63,4 +63,9 @@ variable "desired_capacity" {
 variable "private_subnet_ids" {
   description = "Ids of private subnets for ec2"
   type        = list(string)
+}
+
+variable "alb_security_group_id" {
+  description = "ID of alb security group"
+  type = string
 }
