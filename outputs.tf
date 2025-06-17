@@ -26,7 +26,7 @@ output "internet_gateway_id" {
 
 output "alb_security_group_id" {
   description = "ID of ALB SG"
-  value       = module.security.alb_security_group.id
+  value       = module.security.alb_security_group_id
 }
 
 output "ec2_security_group_id" {

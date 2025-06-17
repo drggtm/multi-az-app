@@ -133,7 +133,7 @@ resource "aws_lb_listener" "front_end" {
 
 resource "aws_autoscaling_group" "main" {
   name                = "${var.project_name}-${var.environment}-asg"
-  vpc_zone_identifier = var.private_subnet_ids
+  vpc_zone_identifier = var.public_subnet_ids
   target_group_arns = [aws_lb_target_group.main.arn]
   health_check_type = "ELB"
   health_check_grace_period = 300

@@ -25,4 +25,4 @@ app_version        = "1.0.0"
 min_size           = 1
 max_size           = 3
 desired_capacity   = 2
-private_subnet_ids = []
+# private_subnet_ids = []
