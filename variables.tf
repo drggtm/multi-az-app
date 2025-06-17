@@ -41,14 +41,6 @@ variable "common_tags" {
   }
 }
 
-# variable "tags" {
-#   description = "tags for vpc"
-#   type        = map(string)
-#   default = {
-
-#   }
-# }
-
 variable "instance_type" {
   description = "type of ec2 instance"
   type        = string
@@ -84,12 +76,6 @@ variable "desired_capacity" {
   type        = number
   default     = 2
 }
-
-# variable "private_subnet_ids" {
-#   description = "Ids of private subnets for ec2"
-#   type        = list(string)
-#   default     = []
-# }
 
 variable "enable_ssh_access" {
   description = "ebable ssh access to ec2?"

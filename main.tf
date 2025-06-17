@@ -38,7 +38,6 @@ module "compute" {
   common_tags = var.common_tags
   vpc_id = module.networking.vpc_id
   public_subnet_ids = module.networking.public_subnets_ids
-  # private_subnet_ids = var.private_subnet_ids
   min_size = var.min_size
   max_size = var.max_size
   desired_capacity = var.desired_capacity

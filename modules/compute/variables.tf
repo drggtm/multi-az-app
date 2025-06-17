@@ -60,11 +60,6 @@ variable "desired_capacity" {
   type        = number
 }
 
-# variable "private_subnet_ids" {
-#   description = "Ids of private subnets for ec2"
-#   type        = list(string)
-# }
-
 variable "alb_security_group_id" {
   description = "ID of alb security group"
   type = string

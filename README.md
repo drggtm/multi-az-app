@@ -1,189 +1,324 @@
-# AWS Infrastructure with Terraform
+# Time API Infrastructure
 
-This repository contains Terraform configurations to deploy a scalable web application infrastructure on AWS using a modular approach.
+A complete AWS infrastructure setup using Terraform to deploy a scalable Time API application with Auto Scaling, Load Balancing, and monitoring capabilities.
 
-## Architecture Overview
+## 🏗️ Architecture Overview
 
-The infrastructure consists of three main modules:
+This infrastructure creates a robust, scalable web application deployment on AWS with the following components:
 
-- **Networking Module**: Creates VPC, subnets, internet gateway, and related networking components
-- **Security Module**: Manages security groups for ALB and EC2 instances
-- **Compute Module**: Deploys EC2 instances with Auto Scaling Group, Launch Template, and Application Load Balancer
+- **Application Load Balancer (ALB)** - Distributes traffic across multiple EC2 instances
+- **Auto Scaling Group (ASG)** - Automatically scales EC2 instances based on CPU utilization
+- **EC2 Instances** - Runs a Python-based Time API service
+- **VPC with Public Subnets** - Network isolation across multiple Availability Zones
+- **Security Groups** - Controls inbound/outbound traffic
+- **CloudWatch Alarms** - Monitors CPU utilization and triggers scaling events
 
-## Project Structure
+```
+Internet
+    ↓
+Application Load Balancer (Public Subnets)
+    ↓
+Auto Scaling Group
+    ↓
+EC2 Instances (Public Subnets) - Python Time API
+    ↓
+CloudWatch Monitoring & Alarms
+```
+
+## 📁 Project Structure
 
 ```
 .
-├── main.tf                           # Main configuration
-├── variables.tf                      # Input variables
-├── outputs.tf                        # Output values
-├── terraform.tfvars                  # Variable values
-├── versions.tf                       # Provider versions
-├── README.md                         # This file
+├── main.tf                 # Root module - orchestrates all components
+├── variables.tf            # Root module variables
+├── outputs.tf             # Root module outputs
+├── terraform.tfvars       # Variable values
+├── versions.tf            # Terraform and provider version constraints
+├── README.md              # This file
 └── modules/
-    ├── networking/
-    │   ├── variables.tf              # Networking module variables
-    │   └── outputs.tf                # Networking module outputs
-    ├── security/
-    │   ├── variables.tf              # Security module variables
-    │   └── outputs.tf                # Security module outputs
-    └── compute/
-        ├── variables.tf              # Compute module variables
-        └── outputs.tf                # Compute module outputs
+    ├── networking/        # VPC, subnets, internet gateway
+    │   ├── main.tf
+    │   ├── variables.tf
+    │   └── outputs.tf
+    ├── security/          # Security groups for ALB and EC2
+    │   ├── main.tf
+    │   ├── variables.tf
+    │   └── outputs.tf
+    └── compute/           # Launch template, ASG, ALB, scaling policies
+        ├── main.tf
+        ├── variables.tf
+        ├── outputs.tf
+        └── user-data.tpl  # EC2 initialization script
 ```
 
-## Prerequisites
+## 🚀 Time API Application
 
-1. **AWS CLI** configured with appropriate credentials
-2. **Terraform** (>= 1.0) installed
-3. **AWS Key Pair** created in your target region
-4. Appropriate **IAM permissions** to create AWS resources
+The deployed application provides a simple REST API with the following endpoints:
 
-## Quick Start
+- `GET /` or `GET /time` - Returns current time with instance metadata
+- `GET /health` - Health check endpoint (used by ALB)
+- `GET /metrics` - Basic system metrics (CPU, memory, disk usage)
 
-### 1. Clone and Configure
-
-```bash
-git clone <repository-url>
-cd <repository-name>
-```
-
-### 2. Update Configuration
-
-Edit `terraform.tfvars` to match your requirements:
-
-```hcl
-# Update these values
-project_name  = "your-project-name"
-key_pair_name = "your-key-pair-name"
-aws_region    = "us-west-2"
-
-# Restrict SSH access (replace with your IP)
-ssh_cidr_blocks = ["YOUR.IP.ADDRESS.HERE/32"]
-```
-
-### 3. Initialize and Deploy
-
-```bash
-# Initialize Terraform
-terraform init
-
-# Review the plan
-terraform plan
-
-# Apply the configuration
-terraform apply
-```
-
-### 4. Access Your Application
-
-After deployment, the load balancer DNS name will be output. You can access your application at:
-```
-http://<load-balancer-dns-name>
-```
-
-## Configuration Options
-
-### Networking Configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `vpc_cidr` | CIDR block for the VPC | `10.0.0.0/16` |
-| `availability_zones_count` | Number of AZs to use | `2` |
-
-### Security Configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `enable_ssh_access` | Enable SSH access to EC2 instances | `false` |
-| `ssh_cidr_blocks` | CIDR blocks allowed SSH access | `[]` |
-
-### Compute Configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `instance_type` | EC2 instance type | `t3.micro` |
-| `min_size` | Minimum instances in ASG | `1` |
-| `max_size` | Maximum instances in ASG | `3` |
-| `desired_capacity` | Desired instances in ASG | `2` |
-
-## Module Dependencies
-
-```mermaid
-graph TD
-    A[Networking Module] --> B[Security Module]
-    A --> C[Compute Module]
-    B --> C
-```
-
-- Security module depends on Networking (VPC ID)
-- Compute module depends on both Networking (subnet IDs) and Security (security group IDs)
-
-## Outputs
-
-After successful deployment, you'll have access to:
-
-| Output | Description |
-|--------|-------------|
-| `vpc_id` | VPC identifier |
-| `public_subnet_ids` | Public subnet identifiers |
-| `load_balancer_dns_name` | Load balancer DNS name |
-| `autoscaling_group_name` | Auto Scaling Group name |
-
-## Remote State (Optional)
-
-To use remote state storage, uncomment and configure the backend in `versions.tf`:
-
-```hcl
-backend "s3" {
-  bucket         = "your-terraform-state-bucket"
-  key            = "terraform.tfstate"
-  region         = "us-west-2"
-  encrypt        = true
-  dynamodb_table = "terraform-state-lock"
+### Sample Response
+```json
+{
+  "current_time": "2025-06-17T10:30:45.123456",
+  "timezone": "UTC",
+  "instance_id": "i-0123456789abcdef0",
+  "availability_zone": "us-west-2a",
+  "hostname": "ip-10-0-1-123",
+  "status": "healthy",
+  "version": "1.0.0"
 }
 ```
 
-## Security Best Practices
+## 📋 Prerequisites
 
-1. **Restrict SSH Access**: Update `ssh_cidr_blocks` to your specific IP range
-2. **Use Strong Key Pairs**: Ensure your EC2 key pair uses strong encryption
-3. **Enable Encryption**: Consider enabling EBS encryption for instances
-4. **Regular Updates**: Keep your AMIs and applications updated
-5. **Monitoring**: Implement CloudWatch monitoring and alerting
+### Required Tools
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
+- [AWS CLI](https://aws.amazon.com/cli/) configured with appropriate credentials
+- An AWS account with appropriate permissions
+
+### AWS Permissions Required
+Your AWS credentials need the following permissions:
+- EC2 (instances, security groups, key pairs)
+- VPC (vpc, subnets, internet gateways, route tables)
+- Elastic Load Balancing (load balancers, target groups)
+- Auto Scaling (launch templates, auto scaling groups, policies)
+- CloudWatch (alarms)
+- IAM (for EC2 instance profiles - if using)
+
+### AWS Key Pair (Optional)
+If you want SSH access to instances:
+```bash
+
+aws ec2 create-key-pair --key-name ec2-key-pair --query 'KeyMaterial' --output text > ec2-key-pair.pem
+chmod 400 ec2-key-pair.pem
+```
+
+## ⚙️ Configuration
+
+### 1. Update terraform.tfvars
+Customize the configuration according to your needs:
+
+```hcl
+# Basic Configuration
+aws_region   = "us-west-2"           # Change to your preferred region
+project_name = "time-api"
+environment  = "dev"
+
+# Resource Tags
+common_tags = {
+  project     = "time-api"
+  environment = "dev"
+  owner       = "devops-team"         # Update with your team
+  managedby   = "terraform"
+}
+
+# Network Configuration
+vpc_cidr                 = "10.0.0.0/16"
+availability_zones_count = 2          # Use 2 AZs for high availability
+
+# Security Configuration
+enable_ssh_access = true              # Set to false if SSH not needed
+ssh_cidr_blocks   = ["0.0.0.0/0"]    # Restrict to your IP for better security
+
+# EC2 Configuration
+instance_type      = "t2.micro"       # Free tier eligible
+key_pair_name      = "ec2-key-pair"   # Your AWS key pair name
+app_version        = "1.0.0"
+
+# Auto Scaling Configuration
+min_size           = 1
+max_size           = 3
+desired_capacity   = 2
+```
+
+### 2. Regional Configuration
+Update the AWS region in both `terraform.tfvars` and `variables.tf` if needed.
+
+## 🚀 Deployment Instructions
+
+### 1. Initialize Terraform
+```bash
+terraform init
+```
+
+### 2. Validate Configuration
+```bash
+terraform validate
+terraform fmt
+```
+
+### 3. Plan Deployment
+```bash
+terraform plan
+```
+Review the plan output to ensure all resources will be created as expected.
+
+### 4. Deploy Infrastructure
+```bash
+terraform apply
+```
+Type `yes` when prompted to confirm the deployment.
+
+### 5. Get Application URL
+After deployment, get the load balancer DNS name:
+```bash
+terraform output load_balancer_dns_name
+```
+
+## 🧪 Testing the Application
+
+### 1. Test the Time API
+```bash
+
+ALB_DNS=$(terraform output -raw load_balancer_dns_name)
 
 
+curl http://$ALB_DNS/time
+
+
+curl http://$ALB_DNS/health
+
+
+curl http://$ALB_DNS/metrics
+```
+
+### 2. Test Auto Scaling
+Generate load to trigger scaling:
+```bash
+while true; do curl http://$ALB_DNS/time; sleep 0.1; done
+```
+
+Monitor the Auto Scaling Group in AWS Console to see new instances being launched when CPU > 80%.
+
+### 3. SSH Access (if enabled)
+```bash
+
+ssh -i ec2-key-pair.pem ec2-user@<instance-public-ip>
+```
+
+## 📊 Monitoring and Logs
+
+### CloudWatch Alarms
+The infrastructure creates the following CloudWatch alarms:
+- **High CPU Alarm** - Triggers scale-up when CPU > 80% for 4 minutes
+- **Low CPU Alarm** - Triggers scale-down when CPU < 20% for 4 minutes
+
+### Application Logs
+View application logs on EC2 instances:
+```bash
+
+sudo journalctl -u time-api -f
+```
+
+### Load Balancer Health Checks
+Monitor target group health in AWS Console:
+- EC2 → Load Balancers → Target Groups → Select your target group → Targets tab
+
+## 🧹 Cleanup
+
+**Important**: Always destroy resources after testing to avoid unnecessary charges.
+
+### Destroy Infrastructure
+```bash
+terraform destroy
+```
+Type `yes` when prompted to confirm the destruction.
+
+### Verify Cleanup
+Check AWS Console to ensure all resources are deleted:
+- EC2 instances
+- Load balancer
+- Target groups
+- Auto Scaling Group
+- VPC and related networking components
+
+## 💰 Cost Considerations
+
+### Free Tier Resources
+- **EC2 t2.micro**: 750 hours/month (first 12 months)
+- **Application Load Balancer**: 750 hours/month (first 12 months)
+- **EBS gp3 storage**: 30 GB/month
+- **Data transfer**: 100 GB/month
+
+### Potential Charges (for testing)
+- **Multiple instances**: Exceeds 750 free hours (≈$0.0116/hour per additional instance)
+- **Cross-AZ data transfer**: Minimal for short testing
+- **Estimated cost for few hours of testing**: $1-5
+
+### Cost Optimization Tips
+1. Use `desired_capacity = 1` for minimal cost
+2. Use single AZ (`availability_zones_count = 1`) to reduce data transfer
+3. Always run `terraform destroy` after testing
+
+## 🔧 Customization
+
+### Modify Instance Type
+```hcl
+# In terraform.tfvars
+instance_type = "t3.small"  # Upgrade from t2.micro
+```
+
+### Add HTTPS Support
+Add SSL certificate and HTTPS listener to the ALB configuration in `modules/compute/main.tf`.
+
+### Enable Private Subnets
+To use private subnets with NAT Gateway (additional cost):
+1. Modify `modules/networking/main.tf` to add private subnets
+2. Add NAT Gateway configuration
+3. Update route tables for private subnets
+4. Modify compute module to use private subnets
+
+### Customize Application
+Modify `modules/compute/user-data.tpl` to:
+- Install different applications
+- Change application ports
+- Add additional services
+- Configure custom monitoring
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-**Issue**: `InvalidKeyPair.NotFound`
-```
-Error: InvalidKeyPair.NotFound: The key pair 'your-key' does not exist
-```
-**Solution**: Create the key pair in AWS Console or update `key_pair_name` in `terraform.tfvars`
+#### 1. Auto Scaling Group Creation Failed
+**Error**: `InvalidSubnet` or subnet-related errors
+**Solution**: Ensure networking module outputs are correctly referenced
 
-**Issue**: `InvalidVpcID.NotFound`
-```
-Error: InvalidVpcID.NotFound: The vpc ID 'vpc-xxxxx' does not exist
-```
-**Solution**: This usually indicates a dependency issue. Run `terraform plan` to check dependencies.
+#### 2. Load Balancer Target Registration Failed
+**Error**: Targets show as "unhealthy"
+**Solutions**:
+- Check security group allows ALB to reach EC2 instances on port 8080
+- Verify application is running and responding on `/health` endpoint
+- Check CloudWatch logs for application errors
 
-### Useful Commands
+#### 3. Cannot Access Application
+**Error**: Connection timeout or refused
+**Solutions**:
+- Verify ALB security group allows inbound traffic on port 80
+- Check that ALB is internet-facing
+- Ensure DNS propagation is complete
 
+#### 4. SSH Access Issues
+**Error**: Permission denied or connection refused
+**Solutions**:
+- Verify key pair exists in the specified region
+- Check security group allows SSH (port 22) from your IP
+- Ensure `enable_ssh_access = true` in configuration
+
+### Debug Commands
 ```bash
+# Check Terraform state
+terraform state list
+terraform state show <resource_name>
+
 # Validate configuration
 terraform validate
 
-# Format code
-terraform fmt -recursive
-
-# Show current state
-terraform show
-
-# List resources
-terraform state list
-
-# Destroy infrastructure
-terraform destroy
+# Check AWS resources
+aws ec2 describe-instances --region us-west-2
+aws elbv2 describe-load-balancers --region us-west-2
 ```
 
+**⚠️ Remember**: Always run `terraform destroy` after testing to avoid unnecessary AWS charges!
